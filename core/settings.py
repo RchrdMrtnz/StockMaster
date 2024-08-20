@@ -141,5 +141,6 @@ ACCOUNT_SESSION_COOKIE_AGE = 86400
 LOGIN_REDIRECT_URL = '/'  
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/inventario/' 
+LOGOUT_REDIRECT_URL = '/api/login/login/'
 
 
