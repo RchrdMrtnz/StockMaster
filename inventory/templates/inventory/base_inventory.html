@@ -1,0 +1,18 @@
+<<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Inventario{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 h-full">
+    {% include 'inventory/partials/sidebar.html' %} <!-- Incluye el sidebar -->
+
+    <div class="p-4 sm:ml-64">
+        {% block content %}
+        <!-- Contenido específico de la página -->
+        {% endblock %}
+    </div>
+</body>
+</html>

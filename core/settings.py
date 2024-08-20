@@ -15,7 +15,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-!$s@i18imy7gh@w+9pv%#%+ld$g@s2oyy#g90qyay))rl6(=!^')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DEBUG', default=True)
+DEBUG = True
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'inventory',  # Your inventory app
     'corsheaders',  # CORS handling
     'django_filters',  # Django Filter for advanced filtering
+    'login', 
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -50,7 +52,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # Asegúrate de que esto apunta al lugar correcto
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -124,3 +126,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_SESSION_COOKIE_AGE = 86400
+
+LOGIN_REDIRECT_URL = '/'  
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = '/inventario/' 
+
+

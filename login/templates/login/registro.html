@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-gray-50 dark:bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar nuevo usuario en StockMaster</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
+    <script>
+        function checkPasswordStrength(password) {
+            let strengthBar = document.getElementById("password-strength-bar");
+            let strengthMessage = document.getElementById("password-strength-message");
+            let strength = 0;
+
+            if (password.length >= 8) strength += 1;
+            if (password.match(/[A-Z]/)) strength += 1;
+            if (password.match(/[a-z]/)) strength += 1;
+            if (password.match(/\d/)) strength += 1;
+            if (password.match(/[\W_]/)) strength += 1;
+
+            switch (strength) {
+                case 1:
+                    strengthBar.className = "w-1/5 bg-red-500 h-2 rounded";
+                    strengthMessage.textContent = "Muy débil";
+                    break;
+                case 2:
+                    strengthBar.className = "w-2/5 bg-orange-500 h-2 rounded";
+                    strengthMessage.textContent = "Débil";
+                    break;
+                case 3:
+                    strengthBar.className = "w-3/5 bg-yellow-500 h-2 rounded";
+                    strengthMessage.textContent = "Moderada";
+                    break;
+                case 4:
+                    strengthBar.className = "w-4/5 bg-green-500 h-2 rounded";
+                    strengthMessage.textContent = "Fuerte";
+                    break;
+                case 5:
+                    strengthBar.className = "w-full bg-blue-500 h-2 rounded";
+                    strengthMessage.textContent = "Muy fuerte";
+                    break;
+                default:
+                    strengthBar.className = "w-1/5 bg-gray-300 h-2 rounded";
+                    strengthMessage.textContent = "";
+            }
+        }
+
+        function checkPasswordMatch() {
+            let password1 = document.getElementById("password1").value;
+            let password2 = document.getElementById("password2").value;
+            let matchMessage = document.getElementById("password-match-message");
+
+            if (password2 === "") {
+                matchMessage.textContent = "";
+            } else if (password1 === password2) {
+                matchMessage.textContent = "Las contraseñas coinciden";
+                matchMessage.className = "text-sm font-medium text-green-500 mt-2";
+            } else {
+                matchMessage.textContent = "Las contraseñas no coinciden";
+                matchMessage.className = "text-sm font-medium text-red-500 mt-2";
+            }
+        }
+    </script>
+</head>
+<body class="h-full">
+    <section class="flex flex-col items-center justify-center px-6 py-8 mx-auto mt-20 mb-16 md:h-screen lg:py-0">
+        <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+            <div class="p-6 space-y-4 md:space-y-6 sm:p-8 text-center">
+                <img class="mx-auto h-10 w-auto mb-6" src="https://cdn-icons-png.flaticon.com/512/747/747545.png" alt="StockMaster">
+                <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                    Crear una cuenta
+                </h1>
+                
+                <form class="space-y-4 md:space-y-6" action="{% url 'registro' %}" method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- Errores generales del formulario -->
+                    {% if form.non_field_errors %}
+                        <div class="text-sm font-medium text-red-500">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Campo Nombre de usuario -->
+                    <div>
+                        <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre de usuario</label>
+                        <input type="text" name="username" id="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Nombre de usuario" required>
+                        {% if form.username.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Primer nombre -->
+                    <div>
+                        <label for="first_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Primer nombre</label>
+                        <input type="text" name="first_name" id="first_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu nombre" required>
+                        {% if form.first_name.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Apellido -->
+                    <div>
+                        <label for="last_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Apellido</label>
+                        <input type="text" name="last_name" id="last_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu apellido" required>
+                        {% if form.last_name.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Correo electrónico -->
+                    <div>
+                        <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Correo electrónico</label>
+                        <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="correo@dominio.com" required>
+                        {% if form.email.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campos Contraseña y Confirmar contraseña -->
+                    <div>
+                        <label for="password1" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contraseña</label>
+                        <input type="password" name="password1" id="password1" oninput="checkPasswordStrength(this.value); checkPasswordMatch();" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
+                        <div class="mt-2">
+                            <div id="password-strength-bar" class="w-1/5 bg-gray-300 h-2 rounded"></div>
+                            <p id="password-strength-message" class="text-sm font-medium text-gray-600 dark:text-gray-400 mt-2"></p>
+                        </div>
+                        {% if form.password1.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="password2" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Confirmar contraseña</label>
+                        <input type="password" name="password2" id="password2" oninput="checkPasswordMatch()" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required>
+                        <p id="password-match-message" class="text-sm font-medium text-red-500 mt-2"></p>
+                        {% if form.password2.errors %}
+                            <p class="text-sm font-medium text-red-500 mt-2">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botón de Enviar -->
+                    <button type="submit" class="w-full text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-indigo-600 dark:hover:bg-indigo-700 dark:focus:ring-indigo-800">Crear cuenta</button>
+                    
+                    <!-- Enlace a Iniciar sesión -->
+                    <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+                        ¿Ya tienes una cuenta? <a href="{% url 'login' %}" class="font-medium text-indigo-600 hover:underline dark:text-primary-500">Inicia sesión aquí</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

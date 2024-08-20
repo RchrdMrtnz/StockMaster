@@ -15,6 +15,8 @@ pytest = "*"
 pytest-django = "*"
 gunicorn = "*"
 django-extensions = "*"
+djangorestframework-simplejwt = "*"
+django-widget-tweaks = "*"
 
 [dev-packages]
 
