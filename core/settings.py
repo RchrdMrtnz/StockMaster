@@ -1,6 +1,6 @@
 from pathlib import Path
 import environ
-
+from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -45,6 +45,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.JWTSessionMiddleware', 
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -143,4 +144,10 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/inventario/' 
 LOGOUT_REDIRECT_URL = '/api/login/login/'
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=60),  
+    'ROTATE_REFRESH_TOKENS': True,  
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 

@@ -59,3 +59,39 @@ class InventoryHomeView(View):
     def post(self, request, *args, **kwargs):
         # Aquí puedes manejar la lógica de un formulario o cualquier acción de post
         pass
+    
+
+class InventoryProduct(View):
+    template_name = 'inventory/product.html'
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(login_required)  
+    def get(self, request, *args, **kwargs):
+        context = {
+            'welcome_message': 'Bienvenido a StockMaster',
+        
+        }
+        return render(request, self.template_name, context)
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        pass
+
+
+class InventoryProviders(View):
+    template_name = 'inventory/providers.html'
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(login_required)  
+    def get(self, request, *args, **kwargs):
+        context = {
+            'welcome_message': 'Bienvenido a StockMaster',
+        
+        }
+        return render(request, self.template_name, context)
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        pass
