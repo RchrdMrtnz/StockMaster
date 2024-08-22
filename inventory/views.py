@@ -15,9 +15,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Producto, Categoria, Proveedor
+from .models import Producto, Categoria, Proveedor,DetalleProducto
 from .serializers import ProductoSerializer, CategoriaSerializer, ProveedorSerializer
 
+
+class ProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Producto
+        fields = ['nombre', 'sku', 'categoria', 'cantidad', 'proveedores']
+        
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
@@ -77,21 +83,58 @@ class InventoryProduct(View):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    @method_decorator(login_required)  
     def get(self, request, *args, **kwargs):
+        categorias = Categoria.objects.all()
+        proveedores = Proveedor.objects.all()
         context = {
-            'welcome_message': 'Bienvenido a StockMaster',
-        
+            'categorias': categorias,
+            'proveedores': proveedores,
         }
         return render(request, self.template_name, context)
+    
+class ProductoCreateAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        pass
+        data = request.data
+
+        # Crear el producto
+        producto = Producto.objects.create(
+            nombre=data['nombre'],
+            sku=data['sku'],
+            categoria_id=data['categoria'],
+            cantidad=data['cantidad']
+        )
+
+        # Asignar los proveedores seleccionados
+        proveedores = data.getlist('proveedores')
+        if proveedores:
+            producto.proveedores.set(proveedores)
+
+        # Crear el detalle del producto
+        DetalleProducto.objects.create(
+            producto=producto,
+            descripcion=data.get('descripcion', ''),
+            precio=data['precio'],
+            peso=data.get('peso', None),
+            longitud=data.get('longitud', None),
+            anchura=data.get('anchura', None),
+            altura=data.get('altura', None),
+            color=data.get('color', ''),
+            material=data.get('material', ''),
+            garantia=data.get('garantia', ''),
+            otras_especificaciones=data.get('otras_especificaciones', '')
+        )
+
+        return Response({'status': 'success', 'message': 'Producto creado correctamente'}, status=status.HTTP_201_CREATED)
+
 
 
 class InventoryProviders(View):
     template_name = 'inventory/providers.html'
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)

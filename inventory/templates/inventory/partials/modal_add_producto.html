@@ -1,0 +1,170 @@
+<!-- Modal -->
+<div id="addProductModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 my-8">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center bg-indigo-100 px-6 py-4 border-b">
+            <h2 class="text-lg font-semibold text-indigo-800">Agregar Nuevo Producto</h2>
+            <button onclick="toggleModal()" class="text-indigo-600 hover:text-indigo-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <!-- Modal Body -->
+        <form id="productForm" class="px-6 py-4" method="POST">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Nombre -->
+                <div class="col-span-2">
+                    <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" required placeholder="Ingrese el nombre del producto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- SKU -->
+                <div>
+                    <label for="sku" class="block text-sm font-medium text-gray-700">SKU</label>
+                    <input type="text" name="sku" id="sku" required placeholder="Ingrese el SKU" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Categoría -->
+                <div>
+                    <label for="categoria" class="block text-sm font-medium text-gray-700">Categoría</label>
+                    <select name="categoria" id="categoria" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2">
+                        <option value="" disabled selected>Seleccione una categoría</option>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Proveedores -->
+                <div class="col-span-2">
+                    <label for="proveedores" class="block text-sm font-medium text-gray-700">Proveedores</label>
+                    <select name="proveedores" id="proveedores" multiple="multiple" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        {% for proveedor in proveedores %}
+                            <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Cantidad -->
+                <div>
+                    <label for="cantidad" class="block text-sm font-medium text-gray-700">Cantidad</label>
+                    <input type="number" name="cantidad" id="cantidad" required min="0" placeholder="Ingrese la cantidad" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Descripción -->
+                <div>
+                    <label for="descripcion" class="block text-sm font-medium text-gray-700">Descripción</label>
+                    <input type="text" name="descripcion" id="descripcion" placeholder="Descripción del producto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Precio -->
+                <div>
+                    <label for="precio" class="block text-sm font-medium text-gray-700">Precio</label>
+                    <input type="number" name="precio" id="precio" required step="0.01" min="0" placeholder="Ingrese el precio" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Peso -->
+                <div>
+                    <label for="peso" class="block text-sm font-medium text-gray-700">Peso (kg)</label>
+                    <input type="number" name="peso" id="peso" step="0.01" min="0" placeholder="Ingrese el peso en kg" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Dimensiones: Longitud, Anchura, Altura -->
+                <div>
+                    <label for="longitud" class="block text-sm font-medium text-gray-700">Longitud (cm)</label>
+                    <input type="number" name="longitud" id="longitud" step="0.01" min="0" placeholder="Longitud en cm" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="anchura" class="block text-sm font-medium text-gray-700">Anchura (cm)</label>
+                    <input type="number" name="anchura" id="anchura" step="0.01" min="0" placeholder="Anchura en cm" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="altura" class="block text-sm font-medium text-gray-700">Altura (cm)</label>
+                    <input type="number" name="altura" id="altura" step="0.01" min="0" placeholder="Altura en cm" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Color -->
+                <div>
+                    <label for="color" class="block text-sm font-medium text-gray-700">Color</label>
+                    <input type="text" name="color" id="color" placeholder="Color del producto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Material -->
+                <div>
+                    <label for="material" class="block text-sm font-medium text-gray-700">Material</label>
+                    <input type="text" name="material" id="material" placeholder="Material del producto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Garantía -->
+                <div>
+                    <label for="garantia" class="block text-sm font-medium text-gray-700">Garantía</label>
+                    <input type="text" name="garantia" id="garantia" placeholder="Información de garantía" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <!-- Otras Especificaciones -->
+                <div class="col-span-2">
+                    <label for="otras_especificaciones" class="block text-sm font-medium text-gray-700">Otras Especificaciones</label>
+                    <input type="text" name="otras_especificaciones" id="otras_especificaciones" placeholder="Otras especificaciones del producto" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+            <!-- Botones -->
+            <div class="flex justify-end mt-6">
+                <button type="button" onclick="toggleModal()" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 mr-2 focus:outline-none">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Inicializar Select2
+    $(document).ready(function() {
+        $('#proveedores').select2({
+            placeholder: 'Seleccione uno o más proveedores',
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // Función para abrir y cerrar el modal
+    function toggleModal() {
+        const modal = document.getElementById('addProductModal');
+        modal.classList.toggle('hidden');
+        if (modal.classList.contains('hidden')) {
+            resetForm();
+        }
+    }
+
+    // Función para resetear el formulario
+    function resetForm() {
+        document.getElementById('productForm').reset();
+        $('#proveedores').val(null).trigger('change');
+    }
+
+    // Manejar el envío del formulario
+    document.getElementById('productForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const url = form.getAttribute('action') || '/inventario/api/productos/';
+        const formData = new FormData(form);
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Accept': 'application/json',
+            },
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                return response.json().then(err => { throw err; });
+            }
+        })
+        .then(data => {
+            console.log('Producto creado:', data);
+            toggleModal();
+            // Aquí puedes actualizar la lista de productos en tu interfaz
+        })
+        .catch(error => {
+            console.error('Error al crear el producto:', error);
+        });
+    });
+</script>

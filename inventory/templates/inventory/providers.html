@@ -49,7 +49,7 @@
     </div>
 </div>
 
-{% include 'inventory/modal_add_proveedor.html' %}
+{% include 'inventory/partials/modal_add_proveedor.html' %}
 
 <script>
     let currentSearchTerm = '';  // Variable para almacenar el término de búsqueda actual
@@ -62,6 +62,12 @@
     function toggleModal() {
         const modal = document.getElementById('addProviderModal');
         modal.classList.toggle('hidden');
+        resetModalForm();  // Resetea el formulario al cerrar o abrir el modal
+    }
+
+    function resetModalForm() {
+        const form = document.getElementById('providerForm');
+        form.reset();
     }
 
     function loadProviders(page = 1, searchTerm = '') {
