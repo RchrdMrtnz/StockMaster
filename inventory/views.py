@@ -12,6 +12,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Producto, Categoria, Proveedor
 from .serializers import ProductoSerializer, CategoriaSerializer, ProveedorSerializer
@@ -101,7 +103,25 @@ class ProveedoresAPIView(APIView):
     def get(self, request, *args, **kwargs):
         paginator = PageNumberPagination()
         paginator.page_size = 10
-        proveedores = Proveedor.objects.all()
+
+        search_term = request.query_params.get('search', '')
+
+        if search_term:
+            proveedores = Proveedor.objects.filter(
+                nombre__icontains=search_term
+            )
+        else:
+            proveedores = Proveedor.objects.all()
+
         result_page = paginator.paginate_queryset(proveedores, request)
         serializer = ProveedorSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        proveedor_id = kwargs.get('pk')
+        try:
+            proveedor = Proveedor.objects.get(id=proveedor_id)
+            proveedor.delete()
+            return Response({'status': 'success', 'message': 'Proveedor eliminado correctamente'}, status=status.HTTP_204_NO_CONTENT)
+        except Proveedor.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Proveedor no encontrado'}, status=status.HTTP_404_NOT_FOUND)

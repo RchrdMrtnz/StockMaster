@@ -29,12 +29,6 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 p-4">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="p-4">
-                        <div class="flex items-center">
-                            <input id="checkbox-all-search" type="checkbox" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="checkbox-all-search" class="sr-only">checkbox</label>
-                        </div>
-                    </th>
                     <th scope="col" class="px-6 py-3">Nombre</th>
                     <th scope="col" class="px-6 py-3">Información de Contacto</th>
                     <th scope="col" class="px-6 py-3">Sitio Web</th>
@@ -58,6 +52,8 @@
 {% include 'inventory/modal_add_proveedor.html' %}
 
 <script>
+    let currentSearchTerm = '';  // Variable para almacenar el término de búsqueda actual
+
     function toggleMenu(button) {
         const menu = button.nextElementSibling;
         menu.classList.toggle('hidden');
@@ -68,8 +64,8 @@
         modal.classList.toggle('hidden');
     }
 
-    function loadProviders(page = 1) {
-        fetch(`/inventario/api/proveedores/?page=${page}`, {
+    function loadProviders(page = 1, searchTerm = '') {
+        fetch(`/inventario/api/proveedores/?page=${page}&search=${searchTerm}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -91,12 +87,6 @@
                 data.results.forEach(provider => {
                     providersTableBody.innerHTML += `
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td class="p-4">
-                                <div class="flex items-center">
-                                    <input id="checkbox-table-search-${provider.id}" type="checkbox" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                    <label for="checkbox-table-search-${provider.id}" class="sr-only">checkbox</label>
-                                </div>
-                            </td>
                             <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                 ${provider.nombre}
                             </th>
@@ -113,8 +103,7 @@
                                     </button>
                                     <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 hidden" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                         <div class="py-1" role="none">
-                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem">Editar</a>
-                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem">Eliminar</a>
+                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem" onclick="deleteProveedor(${provider.id})">Eliminar</a>
                                         </div>
                                     </div>
                                 </div>
@@ -126,16 +115,41 @@
                 paginationControls.innerHTML = '';
 
                 if (data.previous) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${page - 1})" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&laquo;</a>`;
+                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${page - 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&laquo;</a>`;
                 }
 
                 for (let i = 1; i <= data.total_pages; i++) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${i})" class="px-4 py-2 mx-1 text-sm font-medium ${i === page ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</a>`;
+                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${i}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium ${i === page ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</a>`;
                 }
 
                 if (data.next) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${page + 1})" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&raquo;</a>`;
+                    paginationControls.innerHTML += `<a href="#" onclick="loadProviders(${page + 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&raquo;</a>`;
                 }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function deleteProveedor(proveedorId) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este proveedor?')) {
+            return;
+        }
+
+        fetch(`/inventario/api/proveedores/${proveedorId}/`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (response.status === 204) {
+                console.log('Proveedor eliminado correctamente');
+                loadProviders(1, currentSearchTerm);  // Recargar la lista de proveedores
+            } else {
+                return response.json().then(data => {
+                    console.error('Error al eliminar proveedor:', data.message);
+                });
             }
         })
         .catch(error => console.error('Error:', error));
@@ -143,6 +157,11 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         loadProviders();  // Cargar los proveedores al cargar la página
+    });
+
+    document.getElementById('table-search').addEventListener('input', function(event) {
+        currentSearchTerm = event.target.value;  // Actualizar el término de búsqueda
+        loadProviders(1, currentSearchTerm);  // Recargar los proveedores con el término de búsqueda
     });
 
     document.getElementById('providerForm').addEventListener('submit', function(event) {
@@ -172,7 +191,7 @@
             if (data.status === "success") {
                 console.log(data.message);  
                 toggleModal();
-                loadProviders();  // Recargar la lista de proveedores
+                loadProviders(1, currentSearchTerm);  // Recargar la lista de proveedores con el término de búsqueda
             } else {
                 console.error('Error en el servidor:', data.errors);
             }
