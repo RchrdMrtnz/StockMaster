@@ -62,12 +62,15 @@
     function toggleModal() {
         const modal = document.getElementById('addProductModal');
         modal.classList.toggle('hidden');
-        resetModalForm();  // Resetea el formulario al cerrar o abrir el modal
+        if (modal.classList.contains('hidden')) {
+            resetModalForm();
+        }
     }
 
     function resetModalForm() {
         const form = document.getElementById('productForm');
         form.reset();
+        $('#proveedores').val(null).trigger('change'); // Resetea el select de proveedores
     }
 
     function loadProducts(page = 1, searchTerm = '') {
@@ -77,19 +80,12 @@
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         })
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                console.error('Error: La respuesta no es JSON.');
-            }
-        })
+        .then(response => response.json())
         .then(data => {
-            if (data) {
-                const productsTableBody = document.getElementById('products-table-body');
-                productsTableBody.innerHTML = '';
-
+            const productsTableBody = document.getElementById('products-table-body');
+            productsTableBody.innerHTML = '';
+    
+            if (data.results && data.results.length > 0) {
                 data.results.forEach(product => {
                     productsTableBody.innerHTML += `
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
@@ -109,28 +105,77 @@
                                     </button>
                                     <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 hidden" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                         <div class="py-1" role="none">
-                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem">Eliminar</a>
+                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem" onclick="handleAction('agregar_stock', ${product.id})">Agregar Stock</a>
+                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem" onclick="handleAction('descontar_stock', ${product.id})">Descontar Stock</a>
+                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem" onclick="handleAction('ver_detalles', ${product.id})">Ver Detalles</a>
+                                            <a href="#" class="text-red-700 block px-4 py-2 text-sm hover:bg-red-100" role="menuitem" onclick="handleAction('eliminar', ${product.id})">Eliminar</a>
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>`;
+                                </td>
+                            </tr>`;
                 });
+            } else {
+                productsTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No se encontraron productos.</td></tr>`;
+            }
+    
+            const paginationControls = document.getElementById('pagination-controls');
+            paginationControls.innerHTML = '';
+    
+            if (data.previous) {
+                paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${page - 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&laquo;</a>`;
+            }
+    
+            for (let i = 1; i <= data.total_pages; i++) {
+                paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${i}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium ${i === page ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</a>`;
+            }
+    
+            if (data.next) {
+                paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${page + 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&raquo;</a>`;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    function handleAction(action, productId) {
+        let url = '';
+        let method = 'POST';
+        let message = '';
 
-                const paginationControls = document.getElementById('pagination-controls');
-                paginationControls.innerHTML = '';
+        switch (action) {
+            case 'agregar_stock':
+                url = `/inventario/api/productos/${productId}/agregar_stock/`;
+                message = 'Stock agregado exitosamente.';
+                break;
+            case 'descontar_stock':
+                url = `/inventario/api/productos/${productId}/descontar_stock/`;
+                message = 'Stock descontado exitosamente.';
+                break;
+            case 'ver_detalles':
+                // Aquí podrías redirigir a una vista de detalles del producto si la tienes implementada
+                window.location.href = `/inventario/productos/${productId}/detalles/`;
+                return; // Salir de la función para evitar ejecutar el fetch
+            case 'eliminar':
+                url = `/inventario/api/productos/${productId}/delete/`;
+                method = 'DELETE';
+                message = 'Producto eliminado exitosamente.';
+                break;
+            default:
+                console.error('Acción no reconocida:', action);
+                return;
+        }
 
-                if (data.previous) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${page - 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&laquo;</a>`;
-                }
-
-                for (let i = 1; i <= data.total_pages; i++) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${i}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium ${i === page ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</a>`;
-                }
-
-                if (data.next) {
-                    paginationControls.innerHTML += `<a href="#" onclick="loadProducts(${page + 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&raquo;</a>`;
-                }
+        fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                loadProducts(1, currentSearchTerm);  // Recargar los productos después de la acción
+                alert(message);
+            } else {
+                console.error('Error en la acción:', response);
             }
         })
         .catch(error => console.error('Error:', error));
@@ -147,10 +192,10 @@
 
     document.getElementById('productForm').addEventListener('submit', function(event) {
         event.preventDefault();
-    
+
         const formData = new FormData(event.target);
         console.log('Datos del formulario:', Object.fromEntries(formData));
-    
+
         fetch('/inventario/api/productos/', {
             method: 'POST',
             headers: {
@@ -159,18 +204,10 @@
             },
             body: formData
         })
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                return response.text();  // Manejar como texto si no es JSON
-            }
-        })
+        .then(response => response.json())
         .then(data => {
-            console.log('Response:', data);
             if (data.status === "success") {
-                console.log(data.message);  
+                console.log(data.message);
                 toggleModal();
                 loadProducts(1, currentSearchTerm);  // Recargar la lista de productos con el término de búsqueda
             } else {
