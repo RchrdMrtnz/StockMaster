@@ -19,6 +19,7 @@ djangorestframework-simplejwt = "*"
 django-widget-tweaks = "*"
 
 [dev-packages]
+django-rest-swagger = "*"
 
 [requires]
 python_version = "3.11"

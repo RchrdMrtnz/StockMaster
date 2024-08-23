@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django_filters',  # Django Filter for advanced filtering
     'login', 
     'widget_tweaks',
+    'drf_yasg',
 ]
 
 MIDDLEWARE = [
