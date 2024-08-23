@@ -10,10 +10,11 @@ urlpatterns = [
     path('api/productos/<int:product_id>/agregar_stock/', views.AgregarStockAPIView.as_view(), name='agregar-stock'),
     path('api/productos/<int:product_id>/descontar_stock/', views.DescontarStockAPIView.as_view(), name='descontar-stock'),
     path('api/productos/<int:product_id>/delete/', views.ProductoDetailDeleteAPIView.as_view(), name='producto-detail-delete'),
-    
+    path('api/productos/<int:product_id>/detalles/', views.ProductoDetailAPIView.as_view(), name='producto-detalles'),
+
     # Proveedores
     path('proveedores/', views.InventoryProviders.as_view(), name='proveedor-list-create'),
     path('api/proveedores/', views.ProveedoresAPIView.as_view(), name='proveedores-api'),
     path('proveedores/create/', views.CreateProveedorView.as_view(), name='proveedor-create'),
-    path('api/proveedores/<int:pk>/delete/', views.ProveedoresAPIView.as_view(), name='proveedor-delete'),
+    path('api/proveedores/<int:pk>/', views.ProveedoresAPIView.as_view(), name='proveedor-delete'),
 ]

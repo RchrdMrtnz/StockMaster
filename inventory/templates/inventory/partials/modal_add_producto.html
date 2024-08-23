@@ -1,11 +1,10 @@
-
-<!-- Modal -->
+<!-- Modal para agregar producto -->
 <div id="addProductModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 overflow-y-auto hidden">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 my-8">
         <!-- Modal Header -->
         <div class="flex justify-between items-center bg-indigo-100 px-6 py-4 border-b">
             <h2 class="text-lg font-semibold text-indigo-800">Agregar Nuevo Producto</h2>
-            <button onclick="toggleModal()" class="text-indigo-600 hover:text-indigo-800">
+            <button onclick="toggleModal('addProductModal')" class="text-indigo-600 hover:text-indigo-800">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -100,7 +99,7 @@
             </div>
             <!-- Botones -->
             <div class="flex justify-end mt-6">
-                <button type="button" onclick="toggleModal()" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 mr-2 focus:outline-none">
+                <button type="button" onclick="toggleModal('addProductModal')" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 mr-2 focus:outline-none">
                     Cancelar
                 </button>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none">
@@ -122,16 +121,16 @@
     });
 
     // Función para abrir y cerrar el modal
-    function toggleModal() {
-        const modal = document.getElementById('addProductModal');
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
         modal.classList.toggle('hidden');
-        if (modal.classList.contains('hidden')) {
-            resetForm();
+        if (modalId === 'addProductModal' && modal.classList.contains('hidden')) {
+            resetModalForm();
         }
     }
 
     // Función para resetear el formulario
-    function resetForm() {
+    function resetModalForm() {
         document.getElementById('productForm').reset();
         $('#proveedores').val(null).trigger('change');
     }
@@ -140,32 +139,26 @@
     document.getElementById('productForm').addEventListener('submit', function(event) {
         event.preventDefault();
 
-        const form = event.target;
-        const url = form.getAttribute('action') || '/inventario/api/productos/';
-        const formData = new FormData(form);
+        const formData = new FormData(event.target);
 
-        fetch(url, {
+        fetch('/inventario/api/productos/', {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'X-CSRFToken': '{{ csrf_token }}',
                 'Accept': 'application/json',
             },
             body: formData
         })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                toggleModal('addProductModal');  // Cierra el modal de agregar producto
+                loadProducts(1, currentSearchTerm);  // Recargar la lista de productos
             } else {
-                return response.json().then(err => { throw err; });
+                console.error('Error en el servidor:', data.errors);
             }
         })
-        .then(data => {
-            console.log('Producto creado:', data);
-            toggleModal();
-            // Aquí puedes actualizar la lista de productos en tu interfaz
-        })
-        .catch(error => {
-            console.error('Error al crear el producto:', error);
-        });
+        .catch(error => console.error('Error al crear el producto:', error));
     });
 </script>

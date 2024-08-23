@@ -19,7 +19,7 @@
                 </div>
                 <input type="text" id="table-search" class="block w-80 pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500" placeholder="Buscar en la tabla">
             </div>
-            <button onclick="toggleModal()" class="inline-flex items-center px-4 py-2 text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button onclick="toggleModal('addProductModal')" class="inline-flex items-center px-4 py-2 text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <svg class="w-5 h-5 mr-2 -ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5v10m5-5H5"/>
                 </svg>
@@ -50,6 +50,8 @@
 </div>
 
 {% include 'inventory/partials/modal_add_producto.html' %}
+{% include 'inventory/partials/modal_ver_detalles.html' %}
+{% include 'inventory/partials/modal_stock.html' %}
 
 <script>
     let currentSearchTerm = '';  // Variable para almacenar el término de búsqueda actual
@@ -59,10 +61,10 @@
         menu.classList.toggle('hidden');
     }
 
-    function toggleModal() {
-        const modal = document.getElementById('addProductModal');
+    function toggleModal(modalId) {
+        const modal = document.getElementById(modalId);
         modal.classList.toggle('hidden');
-        if (modal.classList.contains('hidden')) {
+        if (modalId === 'addProductModal' && modal.classList.contains('hidden')) {
             resetModalForm();
         }
     }
@@ -135,6 +137,7 @@
         })
         .catch(error => console.error('Error:', error));
     }
+
     function handleAction(action, productId) {
         let url = '';
         let method = 'POST';
@@ -142,17 +145,14 @@
 
         switch (action) {
             case 'agregar_stock':
-                url = `/inventario/api/productos/${productId}/agregar_stock/`;
-                message = 'Stock agregado exitosamente.';
-                break;
+                openStockModal('Agregar Stock', productId, 'agregar_stock');
+                return;
             case 'descontar_stock':
-                url = `/inventario/api/productos/${productId}/descontar_stock/`;
-                message = 'Stock descontado exitosamente.';
-                break;
+                openStockModal('Descontar Stock', productId, 'descontar_stock');
+                return;
             case 'ver_detalles':
-                // Aquí podrías redirigir a una vista de detalles del producto si la tienes implementada
-                window.location.href = `/inventario/productos/${productId}/detalles/`;
-                return; // Salir de la función para evitar ejecutar el fetch
+                mostrarDetallesProducto(productId);  // Llama a la función para cargar y mostrar los detalles del producto
+                return;
             case 'eliminar':
                 url = `/inventario/api/productos/${productId}/delete/`;
                 method = 'DELETE';
@@ -177,6 +177,86 @@
             } else {
                 console.error('Error en la acción:', response);
             }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function openStockModal(title, productId, action) {
+        document.getElementById('modalStockTitle').textContent = title;
+        document.getElementById('stockProductId').value = productId;
+        document.getElementById('stockForm').setAttribute('data-action', action);
+        toggleModal('stockModal');
+    }
+
+    function submitStockForm(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const action = form.getAttribute('data-action');
+        const productId = document.getElementById('stockProductId').value;
+        const cantidad = document.getElementById('cantidad_stock').value;
+
+        let url = '';
+        if (action === 'agregar_stock') {
+            url = `/inventario/api/productos/${productId}/agregar_stock/`;
+        } else if (action === 'descontar_stock') {
+            url = `/inventario/api/productos/${productId}/descontar_stock/`;
+        }
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cantidad })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                toggleModal('stockModal');
+                loadProducts(1, currentSearchTerm);  // Recargar la lista de productos
+                alert(data.message);
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function mostrarDetallesProducto(productId) {
+        fetch(`/inventario/api/productos/${productId}/detalles/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error(data.error);
+                alert('Error al cargar los detalles del producto.');
+                return;
+            }
+    
+            document.getElementById('detalleNombre').textContent = data.nombre;
+            document.getElementById('detalleSKU').textContent = data.sku;
+            document.getElementById('detalleCategoria').textContent = data.categoria;
+            document.getElementById('detalleCantidad').textContent = data.cantidad;
+            document.getElementById('detalleProveedores').textContent = data.proveedores.join(', ');
+            document.getElementById('detalleDescripcion').textContent = data.detalle.descripcion;
+            document.getElementById('detallePrecio').textContent = data.detalle.precio;
+            document.getElementById('detallePeso').textContent = data.detalle.peso || 'N/A';
+            document.getElementById('detalleLongitud').textContent = data.detalle.longitud || 'N/A';
+            document.getElementById('detalleAnchura').textContent = data.detalle.anchura || 'N/A';
+            document.getElementById('detalleAltura').textContent = data.detalle.altura || 'N/A';
+            document.getElementById('detalleColor').textContent = data.detalle.color || 'N/A';
+            document.getElementById('detalleMaterial').textContent = data.detalle.material || 'N/A';
+            document.getElementById('detalleGarantia').textContent = data.detalle.garantia || 'N/A';
+            document.getElementById('detalleOtrasEspecificaciones').textContent = data.detalle.otras_especificaciones || 'N/A';
+    
+            toggleModal('verDetallesModal');
         })
         .catch(error => console.error('Error:', error));
     }
@@ -208,7 +288,7 @@
         .then(data => {
             if (data.status === "success") {
                 console.log(data.message);
-                toggleModal();
+                toggleModal('addProductModal');  // Asegúrate de que solo cierra el modal de agregar producto
                 loadProducts(1, currentSearchTerm);  // Recargar la lista de productos con el término de búsqueda
             } else {
                 console.error('Error en el servidor:', data.errors);

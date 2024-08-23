@@ -143,10 +143,17 @@ class AgregarStockAPIView(APIView):
     def post(self, request, product_id):
         try:
             producto = Producto.objects.get(id=product_id)
-            cantidad = request.data.get('cantidad', 0)
+            cantidad = request.data.get('cantidad')
+
+            # Validación de cantidad
+            if not cantidad or not str(cantidad).isdigit() or int(cantidad) <= 0:
+                return Response({'status': 'error', 'message': 'Cantidad inválida'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Agregar la cantidad al stock existente
             producto.cantidad += int(cantidad)
             producto.save()
             return Response({'status': 'success', 'message': 'Stock agregado correctamente'}, status=status.HTTP_200_OK)
+        
         except Producto.DoesNotExist:
             return Response({'status': 'error', 'message': 'Producto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -157,15 +164,58 @@ class DescontarStockAPIView(APIView):
     def post(self, request, product_id):
         try:
             producto = Producto.objects.get(id=product_id)
-            cantidad = request.data.get('cantidad', 0)
-            if producto.cantidad >= int(cantidad):
-                producto.cantidad -= int(cantidad)
+            cantidad = request.data.get('cantidad')
+
+            # Validación de cantidad
+            if not cantidad or not str(cantidad).isdigit() or int(cantidad) <= 0:
+                return Response({'status': 'error', 'message': 'Cantidad inválida'}, status=status.HTTP_400_BAD_REQUEST)
+
+            cantidad = int(cantidad)
+
+            # Verificar que haya suficiente stock para descontar
+            if producto.cantidad >= cantidad:
+                producto.cantidad -= cantidad
                 producto.save()
                 return Response({'status': 'success', 'message': 'Stock descontado correctamente'}, status=status.HTTP_200_OK)
             else:
                 return Response({'status': 'error', 'message': 'Cantidad insuficiente'}, status=status.HTTP_400_BAD_REQUEST)
+        
         except Producto.DoesNotExist:
             return Response({'status': 'error', 'message': 'Producto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+class ProductoDetailAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_id, *args, **kwargs):
+        try:
+            producto = Producto.objects.get(id=product_id)
+            detalle_producto = producto.detalle
+
+            data = {
+                "nombre": producto.nombre,
+                "sku": producto.sku,
+                "categoria": producto.categoria.nombre,
+                "cantidad": producto.cantidad,
+                "proveedores": [proveedor.nombre for proveedor in producto.proveedores.all()],
+                "creado_en": producto.creado_en,
+                "actualizado_en": producto.actualizado_en,
+                "detalle": {
+                    "descripcion": detalle_producto.descripcion,
+                    "precio": detalle_producto.precio,
+                    "peso": detalle_producto.peso,
+                    "longitud": detalle_producto.longitud,
+                    "anchura": detalle_producto.anchura,
+                    "altura": detalle_producto.altura,
+                    "color": detalle_producto.color,
+                    "material": detalle_producto.material,
+                    "garantia": detalle_producto.garantia,
+                    "otras_especificaciones": detalle_producto.otras_especificaciones,
+                }
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Producto.DoesNotExist:
+            return Response({"error": "Producto no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class ProductoDetailDeleteAPIView(APIView):
