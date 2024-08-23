@@ -17,6 +17,71 @@ from rest_framework import status
 
 from .models import Producto, Categoria, Proveedor, DetalleProducto
 from .serializers import ProductoSerializer, CategoriaSerializer, ProveedorSerializer
+from django.db.models import Sum, Count, F
+
+
+#############
+# Categoria
+#############
+class InventoryCategoryView(View):
+    template_name = 'inventory/category.html'
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
+    
+class CategoriaPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
+class CategoriaListCreateAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        paginator = CategoriaPagination()
+        search_term = request.query_params.get('search', '')
+
+        if search_term:
+            categorias = Categoria.objects.filter(nombre__icontains=search_term).order_by('principal__nombre', 'nombre')
+        else:
+            categorias = Categoria.objects.all().order_by('principal__nombre', 'nombre')
+
+        result_page = paginator.paginate_queryset(categorias, request)
+        serializer = CategoriaSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        data = request.data.copy()  # Copiar los datos del request
+
+        # Si el campo principal está vacío, setearlo explícitamente a None
+        if not data.get('principal'):
+            data['principal'] = None
+
+        serializer = CategoriaSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'message': 'Categoría creada correctamente'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response({'status': 'error', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class CategoriaDetailDeleteAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, category_id, *args, **kwargs):
+        try:
+            categoria = Categoria.objects.get(id=category_id)
+            categoria.delete()
+            return Response({'status': 'success', 'message': 'Categoría eliminada correctamente'}, status=status.HTTP_204_NO_CONTENT)
+        except Categoria.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Categoría no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 
 #############
 # Proveedores
@@ -248,6 +313,27 @@ class InventoryProduct(View):
 #############
 # Vistas generales
 #############
+
+class KPIsAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        total_productos = Producto.objects.count()
+        valor_total_inventario = Producto.objects.aggregate(valor_total=Sum(F('detalle__precio') * F('cantidad')))['valor_total'] or 0
+        productos_sin_stock = Producto.objects.filter(cantidad=0).count()
+        total_proveedores = Proveedor.objects.count()
+
+        data = {
+            'total_productos': total_productos,
+            'valor_total_inventario': valor_total_inventario,
+            'productos_sin_stock': productos_sin_stock,
+            'total_proveedores': total_proveedores,
+        }
+
+        return Response(data, status=200)
+    
+    
 class InventoryHomeView(View):
     template_name = 'inventory/home.html'
     authentication_classes = [JWTAuthentication]

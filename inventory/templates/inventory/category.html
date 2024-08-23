@@ -1,0 +1,261 @@
+{% extends 'inventory/base_inventory.html' %}
+
+{% block title %}
+    Categorías - Lista
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+
+    <!-- Tabla -->
+    <div class="relative overflow-x-visible shadow-md sm:rounded-lg">
+        <div class="flex justify-between items-center py-4 bg-white dark:bg-gray-900 px-4">
+            <div class="relative mt-1">
+                <label for="table-search" class="sr-only">Buscar</label>
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                    </svg>
+                </div>
+                <input type="text" id="table-search" class="block w-80 pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500" placeholder="Buscar en la tabla">
+            </div>
+            <button onclick="toggleModal()" class="inline-flex items-center px-4 py-2 text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <svg class="w-5 h-5 mr-2 -ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 5v10m5-5H5"/>
+                </svg>
+                Agregar Categoría
+            </button>
+        </div>
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 p-4">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Nombre</th>
+                    <th scope="col" class="px-6 py-3">Descripción</th>
+                    <th scope="col" class="px-6 py-3">Principal</th> <!-- Campo adicional para mostrar la categoría principal -->
+                    <th scope="col" class="px-6 py-3 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="categories-table-body">
+                <!-- Aquí se cargarán las categorías dinámicamente -->
+            </tbody>
+        </table>
+
+        <!-- Paginación -->
+        <div id="pagination-controls" class="flex justify-center mt-4">
+            <!-- Los controles de paginación se generarán aquí -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar categoría -->
+<div id="addCategoryModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg w-1/3">
+        <div class="p-4 border-b">
+            <h2 class="text-xl font-semibold">Agregar Categoría</h2>
+        </div>
+        <div class="p-4">
+            <form id="categoryForm" onsubmit="submitCategoryForm(event)">
+                <div class="mb-4">
+                    <label for="nombre" class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" id="nombre" name="nombre" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                </div>
+                <div class="mb-4">
+                    <label for="descripcion" class="block text-sm font-medium text-gray-700">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" rows="3" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="principal" class="block text-sm font-medium text-gray-700">Categoría Principal (opcional)</label>
+                    <select id="principal" name="principal" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">-- Ninguna --</option>
+                        {% for categoria in categorias_principales %}
+                            <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="p-4 border-t text-right">
+                    <button type="button" onclick="toggleModal()" class="px-4 py-2 bg-gray-300 text-black rounded-lg mr-2">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSearchTerm = '';  // Variable para almacenar el término de búsqueda actual
+
+    function toggleMenu(button) {
+        const menu = button.nextElementSibling;
+        menu.classList.toggle('hidden');
+    }
+
+    function loadPrincipalCategories() {
+        fetch('/inventario/api/categorias/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const selectPrincipal = document.getElementById('principal');
+            selectPrincipal.innerHTML = '<option value="">Selecciona una categoría principal (opcional)</option>';
+            data.results.forEach(category => {
+                selectPrincipal.innerHTML += `<option value="${category.id}">${category.nombre}</option>`;
+            });
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function toggleModal() {
+        const modal = document.getElementById('addCategoryModal');
+        modal.classList.toggle('hidden');
+        if (!modal.classList.contains('hidden')) {
+            loadPrincipalCategories(); // Cargar las categorías principales al abrir el modal
+        } else {
+            resetModalForm();
+        }
+    }
+
+    function resetModalForm() {
+        const form = document.getElementById('categoryForm');
+        form.reset();
+    }
+
+    function submitCategoryForm(event) {
+        event.preventDefault();
+    
+        const formData = new FormData(event.target);
+        const principalValue = formData.get('principal');
+        
+        if (principalValue === '') {
+            formData.delete('principal'); // Si no se selecciona una categoría principal, no envíes el campo
+        }
+
+        fetch('/inventario/api/categorias/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                return response.text();  // Manejar como texto si no es JSON
+            }
+        })
+        .then(data => {
+            if (data.status === "success") {
+                console.log(data.message);
+                toggleModal();
+                loadCategories(1, currentSearchTerm);  // Recargar la lista de categorías con el término de búsqueda
+            } else {
+                console.error('Error en el servidor:', data.errors);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function loadCategories(page = 1, searchTerm = '') {
+        fetch(`/inventario/api/categorias/?page=${page}&search=${searchTerm}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                console.error('Error: La respuesta no es JSON.');
+            }
+        })
+        .then(data => {
+            if (data) {
+                const categoriesTableBody = document.getElementById('categories-table-body');
+                categoriesTableBody.innerHTML = '';
+
+                data.results.forEach(category => {
+                    categoriesTableBody.innerHTML += `
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                ${category.nombre}
+                            </th>
+                            <td class="px-6 py-4">${category.descripcion}</td>
+                            <td class="px-6 py-4">${category.principal ? category.principal.nombre : 'Principal'}</td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="relative inline-block text-left">
+                                    <button type="button" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-2 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="options-menu" aria-expanded="false" aria-haspopup="true" onclick="toggleMenu(this)">
+                                        <svg class="ml-1 mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path d="M5.75 9a1.25 1.25 0 110 2.5A1.25 1.25 0 015.75 9zM10 9a1.25 1.25 0 110 2.5A1.25 1.25 0 0110 9zM14.25 9a1.25 1.25 0 110 2.5A1.25 1.25 0 0114.25 9z"/>
+                                        </svg>
+                                    </button>
+                                    <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 hidden" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                        <div class="py-1" role="none">
+                                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-indigo-100" role="menuitem" onclick="deleteCategory(${category.id})">Eliminar</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+
+                const paginationControls = document.getElementById('pagination-controls');
+                paginationControls.innerHTML = '';
+
+                if (data.previous) {
+                    paginationControls.innerHTML += `<a href="#" onclick="loadCategories(${page - 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&laquo;</a>`;
+                }
+
+                for (let i = 1; i <= data.total_pages; i++) {
+                    paginationControls.innerHTML += `<a href="#" onclick="loadCategories(${i}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium ${i === page ? 'bg-indigo-500 text-white' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}">${i}</a>`;
+                }
+
+                if (data.next) {
+                    paginationControls.innerHTML += `<a href="#" onclick="loadCategories(${page + 1}, '${searchTerm}')" class="px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 dark:border-gray-600 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">&raquo;</a>`;
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function deleteCategory(categoryId) {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta categoría?')) {
+            return;
+        }
+
+        fetch(`/inventario/api/categorias/${categoryId}/`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => {
+            if (response.status === 204) {
+                console.log('Categoría eliminada correctamente');
+                loadCategories(1, currentSearchTerm);  // Recargar la lista de categorías
+            } else {
+                return response.json().then(data => {
+                    console.error('Error al eliminar categoría:', data.message);
+                });
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCategories();  // Cargar las categorías al cargar la página
+    });
+
+    document.getElementById('table-search').addEventListener('input', function(event) {
+        currentSearchTerm = event.target.value;  // Actualizar el término de búsqueda
+        loadCategories(1, currentSearchTerm);  // Recargar las categorías con el término de búsqueda
+    });
+</script>
+{% endblock %}

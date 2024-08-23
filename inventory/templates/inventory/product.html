@@ -288,8 +288,8 @@
         .then(data => {
             if (data.status === "success") {
                 console.log(data.message);
-                toggleModal('addProductModal');  // Asegúrate de que solo cierra el modal de agregar producto
-                loadProducts(1, currentSearchTerm);  // Recargar la lista de productos con el término de búsqueda
+                toggleModal('addProductModal');  
+                loadProducts(1, currentSearchTerm);  
             } else {
                 console.error('Error en el servidor:', data.errors);
             }
