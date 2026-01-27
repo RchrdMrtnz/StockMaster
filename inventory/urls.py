@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/productos/<int:product_id>/descontar_stock/', views.DescontarStockAPIView.as_view(), name='descontar-stock'),
     path('api/productos/<int:product_id>/delete/', views.ProductoDetailDeleteAPIView.as_view(), name='producto-detail-delete'),
     path('api/productos/<int:product_id>/detalles/', views.ProductoDetailAPIView.as_view(), name='producto-detalles'),
+    path('api/productos/exportar/', views.ExportProductsCSV.as_view(), name='productos-export'),
 
     # Proveedores
     path('proveedores/', views.InventoryProviders.as_view(), name='proveedor-list-create'),
@@ -26,5 +27,6 @@ urlpatterns = [
     #kpis
     path('api/kpis/', views.KPIsAPIView.as_view(), name='kpis'),
     
-    
+    # Movimientos
+    path('api/movimientos/', views.StockMovementListAPIView.as_view(), name='movimientos-api'),
 ]
