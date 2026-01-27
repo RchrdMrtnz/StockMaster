@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 
@@ -21,6 +22,7 @@ class Producto(models.Model):
     sku = models.CharField(max_length=50, unique=True)  # Código de producto único
     categoria = models.ForeignKey(Categoria, related_name='productos', on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
+    min_stock = models.PositiveIntegerField(default=0)
     proveedores = models.ManyToManyField('Proveedor', related_name='productos')
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
@@ -64,5 +66,23 @@ class Proveedor(models.Model):
         db_table = 'proveedor'
 
 
+class StockMovement(models.Model):
+    TIPO_CHOICES = (
+        ('ENTRADA', 'Entrada'),
+        ('SALIDA', 'Salida'),
+        ('AJUSTE', 'Ajuste'),
+    )
+    producto = models.ForeignKey(Producto, related_name='movimientos', on_delete=models.CASCADE)
+    cantidad = models.IntegerField()
+    tipo_movimiento = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    fecha = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    motivo = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.tipo_movimiento} - {self.producto.nombre} - {self.cantidad}"
+
+    class Meta:
+        db_table = 'stock_movement'
 
 

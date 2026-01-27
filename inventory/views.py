@@ -1,22 +1,25 @@
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse_lazy
+import csv
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic.edit import CreateView
+from django.db import transaction
 
 from rest_framework import generics, viewsets, serializers, filters
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Producto, Categoria, Proveedor, DetalleProducto
-from .serializers import ProductoSerializer, CategoriaSerializer, ProveedorSerializer
+from .models import Producto, Categoria, Proveedor, DetalleProducto, StockMovement
+from .serializers import ProductoSerializer, CategoriaSerializer, ProveedorSerializer, StockMovementSerializer
 from django.db.models import Sum, Count, F
 
 
@@ -33,6 +36,11 @@ class InventoryCategoryView(View):
         return render(request, self.template_name)
     
 class CategoriaPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class StandardPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
@@ -207,16 +215,29 @@ class AgregarStockAPIView(APIView):
 
     def post(self, request, product_id):
         try:
-            producto = Producto.objects.get(id=product_id)
             cantidad = request.data.get('cantidad')
 
             # Validación de cantidad
             if not cantidad or not str(cantidad).isdigit() or int(cantidad) <= 0:
                 return Response({'status': 'error', 'message': 'Cantidad inválida'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Agregar la cantidad al stock existente
-            producto.cantidad += int(cantidad)
-            producto.save()
+            cantidad_int = int(cantidad)
+
+            with transaction.atomic():
+                producto = Producto.objects.select_for_update().get(id=product_id)
+
+                # Agregar la cantidad al stock existente
+                producto.cantidad += cantidad_int
+                producto.save()
+
+                StockMovement.objects.create(
+                    producto=producto,
+                    cantidad=cantidad_int,
+                    tipo_movimiento='ENTRADA',
+                    usuario=request.user,
+                    motivo="Agregar Stock API"
+                )
+
             return Response({'status': 'success', 'message': 'Stock agregado correctamente'}, status=status.HTTP_200_OK)
         
         except Producto.DoesNotExist:
@@ -228,7 +249,6 @@ class DescontarStockAPIView(APIView):
 
     def post(self, request, product_id):
         try:
-            producto = Producto.objects.get(id=product_id)
             cantidad = request.data.get('cantidad')
 
             # Validación de cantidad
@@ -237,13 +257,25 @@ class DescontarStockAPIView(APIView):
 
             cantidad = int(cantidad)
 
-            # Verificar que haya suficiente stock para descontar
-            if producto.cantidad >= cantidad:
-                producto.cantidad -= cantidad
-                producto.save()
-                return Response({'status': 'success', 'message': 'Stock descontado correctamente'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'status': 'error', 'message': 'Cantidad insuficiente'}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                producto = Producto.objects.select_for_update().get(id=product_id)
+
+                # Verificar que haya suficiente stock para descontar
+                if producto.cantidad >= cantidad:
+                    producto.cantidad -= cantidad
+                    producto.save()
+
+                    StockMovement.objects.create(
+                        producto=producto,
+                        cantidad=-cantidad,
+                        tipo_movimiento='SALIDA',
+                        usuario=request.user,
+                        motivo="Descontar Stock API"
+                    )
+
+                    return Response({'status': 'success', 'message': 'Stock descontado correctamente'}, status=status.HTTP_200_OK)
+                else:
+                    return Response({'status': 'error', 'message': 'Cantidad insuficiente'}, status=status.HTTP_400_BAD_REQUEST)
         
         except Producto.DoesNotExist:
             return Response({'status': 'error', 'message': 'Producto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
@@ -322,16 +354,60 @@ class KPIsAPIView(APIView):
         total_productos = Producto.objects.count()
         valor_total_inventario = Producto.objects.aggregate(valor_total=Sum(F('detalle__precio') * F('cantidad')))['valor_total'] or 0
         productos_sin_stock = Producto.objects.filter(cantidad=0).count()
+        productos_bajo_stock = Producto.objects.filter(cantidad__lte=F('min_stock')).count()
         total_proveedores = Proveedor.objects.count()
 
         data = {
             'total_productos': total_productos,
             'valor_total_inventario': valor_total_inventario,
             'productos_sin_stock': productos_sin_stock,
+            'productos_bajo_stock': productos_bajo_stock,
             'total_proveedores': total_proveedores,
         }
 
         return Response(data, status=200)
+
+
+class StockMovementListAPIView(ListAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = StockMovementSerializer
+    pagination_class = StandardPagination
+
+    def get_queryset(self):
+        queryset = StockMovement.objects.all().order_by('-fecha')
+        product_id = self.request.query_params.get('product_id')
+        if product_id:
+            queryset = queryset.filter(producto_id=product_id)
+        return queryset
+
+
+class ExportProductsCSV(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="productos.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['ID', 'Nombre', 'SKU', 'Categoría', 'Cantidad', 'Min Stock', 'Precio', 'Valor Total'])
+
+        productos = Producto.objects.all().select_related('categoria', 'detalle')
+        for producto in productos:
+            precio = producto.detalle.precio if hasattr(producto, 'detalle') else 0
+            writer.writerow([
+                producto.id,
+                producto.nombre,
+                producto.sku,
+                producto.categoria.nombre if producto.categoria else '',
+                producto.cantidad,
+                producto.min_stock,
+                precio,
+                precio * producto.cantidad
+            ])
+
+        return response
     
     
 class InventoryHomeView(View):
