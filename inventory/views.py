@@ -130,7 +130,7 @@ class ProveedoresAPIView(APIView):
                 nombre__icontains=search_term
             )
         else:
-            proveedores = Proveedor.objects.all()
+            proveedores = Proveedor.objects.all().order_by('id')
 
         result_page = paginator.paginate_queryset(proveedores, request)
         serializer = ProveedorSerializer(result_page, many=True)
@@ -174,7 +174,7 @@ class ProductoListCreateAPIView(APIView):
                 nombre__icontains=search_term
             )
         else:
-            productos = Producto.objects.all()
+            productos = Producto.objects.all().order_by('id')
 
         result_page = paginator.paginate_queryset(productos, request)
         serializer = ProductoSerializer(result_page, many=True)
@@ -189,7 +189,11 @@ class ProductoListCreateAPIView(APIView):
             cantidad=data['cantidad']
         )
 
-        proveedores = data.getlist('proveedores')
+        if hasattr(data, 'getlist'):
+            proveedores = data.getlist('proveedores')
+        else:
+            proveedores = data.get('proveedores')
+
         if proveedores:
             producto.proveedores.set(proveedores)
 
