@@ -20,6 +20,9 @@ django-widget-tweaks = "*"
 
 [dev-packages]
 django-rest-swagger = "*"
+factory_boy = "*"
+faker = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.12"
